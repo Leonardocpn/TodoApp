@@ -1,7 +1,13 @@
 import * as functions from "firebase-functions";
 import express from "express";
 import cors from "cors";
-import { loginUser, createUser, editUser, getUserDetails } from "./Api/users";
+import {
+  loginUser,
+  createUser,
+  editUser,
+  getUserDetails,
+  uploadProfilePhoto,
+} from "./Api/users";
 import { createTodo, getAllTodos, deleteTodo, editTodo } from "./Api/todos";
 import { auth } from "./utils/auth";
 
@@ -17,5 +23,6 @@ app.post("/todo/create", auth, createTodo);
 app.get("/todos", auth, getAllTodos);
 app.delete("/todo/:todoId", auth, deleteTodo);
 app.put("/todo/:todoId", auth, editTodo);
+app.post("/user/image", auth, uploadProfilePhoto);
 
 export const api = functions.https.onRequest(app);

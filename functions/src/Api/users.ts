@@ -89,8 +89,6 @@ export const editUser = async (request: Request, response: Response) => {
   const doc = await userRef.get();
   if (!doc.exists) {
     return response.status(404).json({ error: "User not found" });
-  } else if ((await userRef.get()).data()?.username !== request.username) {
-    return response.status(403).json({ error: "UnAuthorized" });
   } else {
     try {
       await userRef.update(request.body);
@@ -108,8 +106,6 @@ export const getUserDetails = async (request: Request, response: Response) => {
   const doc = await userRef.get();
   if (!doc.exists) {
     return response.status(404).json({ error: "User not found" });
-  } else if ((await userRef.get()).data()?.username !== request.username) {
-    return response.status(403).json({ error: "UnAuthorized" });
   } else {
     try {
       return response.json({ userData: doc.data() });
@@ -118,3 +114,70 @@ export const getUserDetails = async (request: Request, response: Response) => {
     }
   }
 };
+
+const deleteImage = async (imageName: any) => {
+  const bucket = admin.storage().bucket();
+  const pathTo = `${imageName}`;
+  try {
+    await bucket.file(pathTo).delete();
+    return;
+  } catch (_error) {
+    return;
+  }
+};
+
+export const uploadProfilePhoto = async (
+  request: Request,
+  response: Response
+) => {
+  const busboy = new BusBoy({ headers: request.headers });
+
+  let imageFileName: any;
+  let imageToBeUploaded: ImageUpload = { filePath: "", mimetype: "" };
+
+  busboy.on("file", (__fieldname, file, filename, __encoding, mimetype) => {
+    if (mimetype !== "image/png" && mimetype !== "image/jpeg") {
+      response.status(400).json({ error: "Wrong file type submited" });
+    }
+    const imageExtension = filename.split(".")[filename.split(".").length - 1];
+    imageFileName = `${request.username}.${imageExtension}`;
+    const filePath = path.join(os.tmpdir(), imageFileName);
+    imageToBeUploaded = { filePath, mimetype };
+    file.pipe(fs.createWriteStream(filePath));
+  });
+
+  await deleteImage(imageFileName);
+  busboy.on("finish", () => {
+    admin
+      .storage()
+      .bucket()
+      .upload(imageToBeUploaded.filePath, {
+        resumable: false,
+        metadata: {
+          metadata: {
+            contentType: imageToBeUploaded.mimetype,
+          },
+        },
+      })
+      .then(() => {
+        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o/${imageFileName}?alt=media`;
+        return db.doc(`/users/${request.username}`).update({
+          imageUrl,
+        });
+      })
+      .then(() => {
+        return response.json({ message: "Image uploaded successfully" });
+      })
+      .catch((error) => {
+        console.error(error);
+        return response.status(500).json({ error: error.code });
+      });
+  });
+  busboy.end(request.body);
+  return;
+};
+
+interface ImageUpload {
+  filePath: string;
+  mimetype: string;
+}

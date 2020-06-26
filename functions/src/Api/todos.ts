@@ -33,6 +33,17 @@ export const getAllTodos = (request: Request, response: Response) => {
           isCompleted: doc.get("isCompleted"),
         };
       });
-      response.status(200).send(result);
+      return response.status(200).send(result);
     });
+};
+
+export const deleteTodo = async (request: Request, response: Response) => {
+  const todoRef = db.collection("todos").doc(`${request.params.todoId}`);
+  const doc = await todoRef.get();
+  if (!doc.exists) {
+    return response.status(404).json({ error: "Todo not found" });
+  } else {
+    await todoRef.delete();
+    return response.json({ message: "Todo delete successfully" });
+  }
 };

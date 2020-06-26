@@ -3,15 +3,17 @@ import express from "express";
 import cors from "cors";
 import { loginUser, createUser } from "./Api/users";
 import { createTodo, getAllTodos, deleteTodo, editTodo } from "./Api/todos";
+import { auth } from "./utils/auth";
 
 const app = express();
 app.use(cors());
 
 app.post("/login", loginUser);
 app.post("/user/create", createUser);
-app.post("/todo/create", createTodo);
-app.get("/todos", getAllTodos);
-app.delete("/todo/:todoId", deleteTodo);
-app.put("/todo/:todoId", editTodo);
+
+app.post("/todo/create", auth, createTodo);
+app.get("/todos", auth, getAllTodos);
+app.delete("/todo/:todoId", auth, deleteTodo);
+app.put("/todo/:todoId", auth, editTodo);
 
 export const api = functions.https.onRequest(app);

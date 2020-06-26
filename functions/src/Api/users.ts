@@ -32,7 +32,6 @@ export const createUser = async (request: Request, response: Response) => {
     password: request.body.password,
     username: request.body.username,
   };
-  console.log(newUser);
 
   try {
     if (

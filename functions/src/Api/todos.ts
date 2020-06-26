@@ -6,6 +6,7 @@ export const createTodo = async (request: Request, response: Response) => {
     description: request.body.description,
     createdAt: new Date().toISOString(),
     isCompleted: false,
+    username: request.username,
   };
 
   try {
@@ -15,6 +16,7 @@ export const createTodo = async (request: Request, response: Response) => {
       description: newTodo.description,
       createdAt: newTodo.createdAt,
       isCompleted: newTodo.isCompleted,
+      username: newTodo.username,
     });
   } catch (err) {
     return response.status(500).json({ error: "Something went wrong" });
@@ -23,6 +25,7 @@ export const createTodo = async (request: Request, response: Response) => {
 
 export const getAllTodos = (request: Request, response: Response) => {
   db.collection("todos")
+    .where("username", "==", request.username)
     .orderBy("createdAt", "desc")
     .onSnapshot((queryResponse) => {
       const result = queryResponse.docs.map((doc) => {
@@ -42,6 +45,8 @@ export const deleteTodo = async (request: Request, response: Response) => {
   const doc = await todoRef.get();
   if (!doc.exists) {
     return response.status(404).json({ error: "Todo not found" });
+  } else if ((await todoRef.get()).data()?.username !== request.username) {
+    return response.status(403).json({ error: "UnAuthorized" });
   } else {
     await todoRef.delete();
     return response.json({ message: "Todo delete successfully" });
@@ -52,12 +57,14 @@ export const editTodo = async (request: Request, response: Response) => {
   if (request.body.todoId || request.body.createdAt) {
     return response.status(403).json({ message: "Not allowed to edit" });
   }
-
-  const document = db.collection("todos").doc(`${request.params.todoId}`);
-  try {
-    await document.update(request.body);
-    return response.json({ message: "Todo updated successfully" });
-  } catch (error) {
-    return response.status(500).json({ error: error.code });
+  const todoRef = db.collection("todos").doc(`${request.params.todoId}`);
+  const doc = await todoRef.get();
+  if (!doc.exists) {
+    return response.status(404).json({ error: "Todo not found" });
+  } else if ((await todoRef.get()).data()?.username !== request.username) {
+    return response.status(403).json({ error: "UnAuthorized" });
+  } else {
+    await todoRef.update(request.body);
+    return response.json({ message: "Todo update successfully" });
   }
 };

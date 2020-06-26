@@ -47,3 +47,17 @@ export const deleteTodo = async (request: Request, response: Response) => {
     return response.json({ message: "Todo delete successfully" });
   }
 };
+
+export const editTodo = async (request: Request, response: Response) => {
+  if (request.body.todoId || request.body.createdAt) {
+    return response.status(403).json({ message: "Not allowed to edit" });
+  }
+
+  const document = db.collection("todos").doc(`${request.params.todoId}`);
+  try {
+    await document.update(request.body);
+    return response.json({ message: "Todo updated successfully" });
+  } catch (error) {
+    return response.status(500).json({ error: error.code });
+  }
+};

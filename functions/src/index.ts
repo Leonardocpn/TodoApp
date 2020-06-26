@@ -2,7 +2,7 @@ import * as functions from "firebase-functions";
 import express from "express";
 import cors from "cors";
 import { loginUser, createUser } from "./Api/users";
-import { createTodo, getAllTodos, deleteTodo } from "./Api/todos";
+import { createTodo, getAllTodos, deleteTodo, editTodo } from "./Api/todos";
 
 const app = express();
 app.use(cors());
@@ -12,5 +12,6 @@ app.post("/user/create", createUser);
 app.post("/todo/create", createTodo);
 app.get("/todos", getAllTodos);
 app.delete("/todo/:todoId", deleteTodo);
+app.put("/todo/:todoId", editTodo);
 
 export const api = functions.https.onRequest(app);

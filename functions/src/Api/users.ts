@@ -1,7 +1,11 @@
 import { firebaseConfig } from "../utils/firebaseConfig";
 import firebase from "firebase";
 import { Request, Response } from "express";
-import { db } from "../utils/admin";
+import admin, { db } from "../utils/admin";
+import BusBoy from "busboy";
+import path from "path";
+import os from "os";
+import fs from "fs";
 
 firebase.initializeApp(firebaseConfig);
 
@@ -68,6 +72,49 @@ export const createUser = async (request: Request, response: Response) => {
       return response
         .status(500)
         .json({ general: "Something went wrong, please try again" });
+    }
+  }
+};
+
+export const editUser = async (request: Request, response: Response) => {
+  if (
+    request.body.userId ||
+    request.body.createdAt ||
+    request.body.email ||
+    request.body.username
+  ) {
+    return response.status(403).json({ message: "Not allowed to edit" });
+  }
+  const userRef = db.collection("users").doc(`${request.username}`);
+  const doc = await userRef.get();
+  if (!doc.exists) {
+    return response.status(404).json({ error: "User not found" });
+  } else if ((await userRef.get()).data()?.username !== request.username) {
+    return response.status(403).json({ error: "UnAuthorized" });
+  } else {
+    try {
+      await userRef.update(request.body);
+      return response.json({ message: "User update successfully" });
+    } catch (err) {
+      return response.status(500).json({
+        message: "Cannot Update the value",
+      });
+    }
+  }
+};
+
+export const getUserDetails = async (request: Request, response: Response) => {
+  const userRef = db.collection("users").doc(`${request.username}`);
+  const doc = await userRef.get();
+  if (!doc.exists) {
+    return response.status(404).json({ error: "User not found" });
+  } else if ((await userRef.get()).data()?.username !== request.username) {
+    return response.status(403).json({ error: "UnAuthorized" });
+  } else {
+    try {
+      return response.json({ userData: doc.data() });
+    } catch (err) {
+      return response.status(500).json({ error: err.code });
     }
   }
 };
